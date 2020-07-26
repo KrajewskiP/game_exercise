@@ -83,6 +83,7 @@ class Game {
 
     addRow() {
         const row = document.createElement("div");
+        row.className = "row";
         this.game.appendChild(row);
         this.rows.push(row);
 
