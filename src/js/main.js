@@ -1,7 +1,8 @@
 const config = {
 	width: 5,
 	height: 5,
-	loopingDelay: 1000
+	loopingDelay: 1000,
+	greenCellPossibilityInPercentage: 30
 }
 
 class Tick {
@@ -65,23 +66,29 @@ class Game {
 	}
 
 	drawBoard() {
-		if (this.game.hasChildNodes() > 0) {
-			this.game.innerText = "";
-			// console.log('no children');
-		}
 		for (let i = 0; i < this.height; i++) {
-			const row = document.createElement("div");
-			this.game.appendChild(row);
-			for (let j = 0; j < this.width; j++) {
-				this.cells.push(new Cell(row, this));
-			}
+			this.addRow();
+		}
+	}
+
+	updateBoard() {
+		this.cells.forEach(c => c.clearClasses());
+		this.game.childNodes.forEach(e => this.cells.push(new Cell(e, this)));
+		this.addRow();
+	}
+
+	addRow() {
+		const row = document.createElement("div");
+		this.game.appendChild(row);
+		for (let j = 0; j < this.width; j++) {
+			this.cells.push(new Cell(row, this));
 		}
 	}
 
 	update() {
 		if (!this.gameEnded) {
 			this.currentTime += Game.time.deltaTime;
-	
+
 			this.cells.forEach(c => c.update());
 		}
 	}
@@ -100,14 +107,14 @@ class Game {
 	}
 
 	levelUp() {
-		this.width = this.width + 1;
-		this.height = this.height + 1;
-		this.drawBoard();
+		this.width++;
+		this.height++;
+		this.levelElement.innerText = ++this.level;
+		this.updateBoard();
 	}
 
 	addScore() {
-		this.score = this.score + 1;
-		this.scoreElement.innerText = this.score;
+		this.scoreElement.innerText = ++this.score;
 		if (this.score > this.scoreToLevelUp) {
 			this.levelUp();
 			this.scoreToLevelUp = this.scoreToLevelUp * 2;
@@ -115,14 +122,12 @@ class Game {
 	}
 
 	decreaseChances() {
-		this.chances = this.chances - 1;
-		this.chancesElement.innerText = this.chances;
+		this.chancesElement.innerText = --this.chances;
 
 	}
 
 	decreaseLife() {
-		this.life = this.life - 1;
-		this.lifeElement.innerText = this.life;
+		this.lifeElement.innerText = --this.life;
 		if (this.life < 1) {
 			this.endGame();
 		}
@@ -143,15 +148,20 @@ class Cell {
 	parentNode = null;
 	timeToChange = 0;
 	currentTime = 0;
+	greenPossibility = config.greenCellPossibilityInPercentage / 100;
 
 	constructor(parentNode, game) {
 		this.parentNode = parentNode;
 		this.dom = document.createElement("span");
 		this.dom.className = 'cell';
-		this.timeToChange = Math.random() * 10 + 3;
+		this.timeToChange = this.setTimeToChange();
 		this.parentNode.appendChild(this.dom);
 		this.dom.addEventListener("click", this.click.bind(this));
 		this.game = game;
+	}
+
+	setTimeToChange() {
+		return Math.random() * 10 + 3;
 	}
 
 	click() {
@@ -169,7 +179,7 @@ class Cell {
 		if (this.currentTime > this.timeToChange) {
 			this.currentTime = 0;
 			this.changeColor();
-			this.timeToChange = Math.random() * 10 + 3;
+			this.timeToChange = this.setTimeToChange();
 		}
 	}
 
@@ -179,11 +189,13 @@ class Cell {
 			this.decreaseChances(false);
 		} else {
 			this.clearClasses();
-			if (random > 0.7) {
+			let green = 1 - this.greenPossibility;
+			let otherColor = green / 2;
+			if (random > green) {
 				this.dom.classList.add('green');
-			} else if (random < 0.7 && random > 0.4) {
+			} else if (random <= green && random > otherColor) {
 				this.dom.classList.add('red');
-			} else if (random < 0.4) {
+			} else if (random <= otherColor) {
 				this.dom.classList.add('grey');
 			}
 		}
